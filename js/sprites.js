@@ -7,6 +7,7 @@ const BULLET_COLORS = {
   red: '#ff3b5c', orange: '#ff9330', yellow: '#ffe24a', gold: '#ffc857',
   green: '#4dff9a', cyan: '#3fe6ff', blue: '#4f7dff', purple: '#a35bff',
   pink: '#ff6fd0', white: '#ffffff', silver: '#bcd0ff',
+  sepia: '#e8c08a', ash: '#bfb4d6', // 記憶の色（残夢）
 };
 
 // r = 当たり判定半径, size = 描画サイズ

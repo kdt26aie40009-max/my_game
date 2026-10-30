@@ -2,7 +2,7 @@
 // ============================================================
 //  ゲーム本体：シーン管理・当たり判定・UI・メインループ
 // ============================================================
-const STAGES = [STAGE1, STAGE2, STAGE3, STAGE4];
+const STAGES = [STAGE1, STAGE2, STAGE3, STAGE4, STAGE5];
 const EXTENDS = [5000000, 12000000, 25000000, 40000000];
 
 const Game = {
@@ -320,6 +320,7 @@ const Game = {
     Effects.spark(b.x, b.y, '#ffd970', 4, 1.5, 16, 1.5);
     p.drowse = Math.min(1, p.drowse + 0.1);
     Sound.play('bless');
+    if (this.stage.onBless) this.stage.onBless(b);
   },
   onFull() {
     this.notice = { text: '満腹！　ショット強化', t: 120, col: '#ffd27a' };

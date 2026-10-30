@@ -11,6 +11,16 @@
 //  → 見たものを信じるな。悪夢だから悪いとは限らない。
 // ============================================================
 
+// 白抜きの弾は一度だけ逆走し、裏返ると中身が詰まる（もう返らない）
+function flipRevBullets() {
+  for (const b of Bullets.list) {
+    if (!b.rev || !b.alive) continue;
+    b.ang += Math.PI; b.jit = 0; b.rev = false;
+    b.retype(b.type === 'ring' ? 'orb' : 'rice');
+  }
+}
+function trembleRev() { for (const b of Bullets.list) if (b.rev) b.jit = 1.2; }
+
 // 砂時計（背景・ボス・情報表示で共通）
 //   top: 上の部屋に残っている砂の割合（0〜1）
 function drawHourglass(c, x, y, w, h, top, rot = 0, alpha = 1) {
@@ -59,13 +69,8 @@ class BgStage4 {
   sand() { return this.anim > 0 ? 0 : clamp(this.flipT / this.period, 0, 1); }
   hgRot() { return Math.PI * easeInOutSine(this.anim); }
 
-  // 白抜きの弾は一度だけ逆走し、裏返ると中身が詰まる（もう返らない）
   flip() {
-    for (const b of Bullets.list) {
-      if (!b.rev || !b.alive) continue;
-      b.ang += Math.PI; b.jit = 0; b.rev = false;
-      b.retype(b.type === 'ring' ? 'orb' : 'rice');
-    }
+    flipRevBullets();
     this.flips++;
     this.anim = 0.001;
     Sound.play('flip');
@@ -79,7 +84,7 @@ class BgStage4 {
     if (per !== this.period) { this.period = per; this.flipT = Math.min(this.flipT, per); }
     if (!Game.dlg) {
       this.flipT--;
-      if (this.flipT <= 24) for (const b of Bullets.list) if (b.rev) b.jit = 1.2; // 返る前触れ
+      if (this.flipT <= 24) trembleRev(); // 返る前触れ
       if (this.flipT <= 0) { this.flip(); this.flipT = this.period; }
     }
     if (this.anim > 0) {
