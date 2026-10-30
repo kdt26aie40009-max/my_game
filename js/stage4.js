@@ -695,8 +695,8 @@ function* stage4Script() {
   yield* waitUntil(() => Enemies.list.length === 0, 600);
   yield 40;
 
-  // D：逆さ灯籠
-  spawnLantern(FW / 2);
+  // D：逆さ灯籠（倒すと獏喰アイテム）
+  spawnLantern(FW / 2).drops.bomb = 1;
   yield 240;
   for (let i = 0; i < 3; i++) { spawnKoi(rand(40, FW - 40)); yield 60; }
   yield* waitUntil(() => Enemies.list.length === 0, 500);

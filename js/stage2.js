@@ -819,8 +819,8 @@ function* stage2Script() {
   yield* waitUntil(() => Enemies.list.length === 0, 400);
   yield 40;
 
-  // D：割れ鏡 ― 狙われるのは鏡の中の自分
-  spawnMirror(FW / 2);
+  // D：割れ鏡 ― 狙われるのは鏡の中の自分（倒すと獏喰アイテム）
+  spawnMirror(FW / 2).drops.bomb = 1;
   yield 150;
   yield* shadowWave([[60, 200], [324, 200]], 60);
   yield 50;

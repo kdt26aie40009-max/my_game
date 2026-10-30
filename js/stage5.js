@@ -726,6 +726,7 @@ function* stage5Script() {
 const STAGE5 = {
   no: 5, name: '第五夢', title: '残夢',
   leftoverRate: 0.18, // 食べても、夢は残る
+  midBomb: true, // 中ボスを倒すと獏喰アイテム
   drowse: true,
   nextHint: '最終夢「夢そのもの」へ続く……',
   makeBg: () => new BgStage5(),
