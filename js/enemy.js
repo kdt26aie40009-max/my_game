@@ -149,6 +149,18 @@ const Enemies = {
 };
 
 // ---- 動き・狙いのヘルパー ----
+// アイテムの運び役：倒せば落とし、倒されずに去っても近くに置いていく（必ず1個もらえる）
+function carryItem(e, type) {
+  e.drops = Object.assign({}, e.drops, { [type]: 1 });
+  const onDeath = e.onDeath;
+  e.onDeath = (x) => { x.dropped = true; if (onDeath) onDeath(x); }; // 倒された＝もう落とした
+  Game.stageTasks.add((function* () {
+    while (e.alive) yield 1;
+    if (!e.dropped) Items.spawn(type, clamp(e.x, 20, FW - 20), clamp(e.y, 30, FH - 60));
+  })());
+  return e;
+}
+
 function* moveTo(e, x, y, frames, ease = easeOutCubic) {
   e.vx = e.vy = 0;
   const sx = e.x, sy = e.y;

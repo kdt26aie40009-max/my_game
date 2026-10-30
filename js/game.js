@@ -460,9 +460,9 @@ const Game = {
       this.whiteFlash = b.isMid ? 10 : 30;
       Items.spawn(b.isMid ? 'bigpower' : 'bomb', b.x, b.y);
       if (b.isMid && this.stage.midLife) Items.spawn('life', b.x, b.y - 10);
-      if (b.isMid && this.stage.midBomb) Items.spawn('bomb', b.x, b.y - 10);
       Items.scatter('point', b.isMid ? 8 : 16, b.x, b.y, 40);
     }
+    if (b.isMid && this.stage.midBomb) Items.spawn('bomb', b.x, b.y - 10); // 獏喰アイテムは逃げられても落とす
   },
 
   nextStageDef() { return this.practice ? null : STAGES[this.stageIdx + 1] || null; },
