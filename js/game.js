@@ -203,7 +203,7 @@ const Game = {
       if (Input.pressed('shot')) {
         Sound.play('ok');
         if (this.menu === 0) this.overlay = null;
-        else if (this.menu === 1) { this.saveHi(); this.newGame(D.lv); }
+        else if (this.menu === 1) { this.saveHi(); this.newGame(D.lv, this.startIdx); } // 練習ならその面の最初から
         else this.toTitle();
       }
     } else if (o === 'gameover') {
@@ -727,7 +727,7 @@ const Game = {
       c.globalAlpha = Math.min(1, n.t / 30);
       c.fillStyle = n.col; c.font = `bold 18px ${FONT_SERIF}`;
       c.shadowColor = '#000'; c.shadowBlur = 6;
-      c.fillText(n.text, FW / 2, 200);
+      c.fillText(n.text, FW / 2, this.banner ? FH * 0.38 + 66 : 200); // 面タイトルが出ている間は、その下に
       c.globalAlpha = 1; c.shadowBlur = 0;
     }
     c.restore();
