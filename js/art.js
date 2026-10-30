@@ -18,6 +18,10 @@ const ART_MANIFEST = {
   // boss4_cutin: 'assets/boss4_cutin.png',
   // boss5: 'assets/boss5.png',            // 残夢の精霊
   // boss5_cutin: 'assets/boss5_cutin.png',
+  // shadow: 'assets/shadow.png',          // 獏の影（最終夢の中ボス）
+  // shadow_cutin: 'assets/shadow_cutin.png',
+  // boss6: 'assets/boss6.png',            // 夢の精霊
+  // boss6_cutin: 'assets/boss6_cutin.png',
 };
 
 const Art = {

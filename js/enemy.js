@@ -77,18 +77,19 @@ class Boss extends Enemy {
     Bullets.clear(true);
     Effects.clearWarns();
     this.tasks.clear(); this.pd = {};
-    if (!timeout) {
+    if (!timeout || p.survival) {
       Items.scatter('power', p.spell ? 6 : 3, this.x, this.y, 30);
       Items.scatter('point', p.spell ? 6 : 3, this.x, this.y, 30);
     }
     Effects.ring(this.x, this.y, '#ffffff', 90, 30, 3);
     Sound.play('kill');
     const last = this.pi >= this.phases.length - 1;
-    this.fled = last && timeout;
+    this.fled = last && timeout && !p.survival;
     this.trans = last ? 1 : 50;
   }
   damage(d) {
     if (!this.started || this.trans > 0 || this.pi < 0 || this.pi >= this.phases.length || this.invuln > 0) return;
+    if (this.phase.survival) return; // 耐久夢札：時間まで耐える
     this.hp -= d; this.hitT = 3;
     Game.addScore(10);
     Sound.play('hit');

@@ -2,11 +2,13 @@
 // ============================================================
 //  ゲーム本体：シーン管理・当たり判定・UI・メインループ
 // ============================================================
-const STAGES = [STAGE1, STAGE2, STAGE3, STAGE4, STAGE5];
+const STAGES = [STAGE1, STAGE2, STAGE3, STAGE4, STAGE5, STAGE6];
 const EXTENDS = [5000000, 12000000, 25000000, 40000000];
 
 const Game = {
   canvas: null, ctx: null, scene: 'title', frame: 0, menu: 0, lastDiff: 1, practice: false,
+  startIdx: 0, lastStage: 0,
+  cheat: false, cheated: false, ctrlTaps: [], // 無敵（Ctrl を3回）
   player: null, score: 0, hiScore: 0,
   stage: null, stageIdx: 0, stageTasks: null, bg: null,
   boss: null, spellUI: null, result: null, banner: null, bgm: null, notice: null, cutin: null,
@@ -51,7 +53,10 @@ const Game = {
   loadJSON(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } },
   saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できない環境は無視 */ } },
   loadHi(lv) { return this.loadJSON('mugen_hi_' + lv, 0); },
-  saveHi() { if (!this.practice && this.score > this.loadHi(D.lv)) this.saveJSON('mugen_hi_' + D.lv, Math.floor(this.score)); },
+  saveHi() {
+    if (this.practice || this.startIdx > 0 || this.cheated) return; // 途中の面から・無敵を使ったプレイは記録しない
+    if (this.score > this.loadHi(D.lv)) this.saveJSON('mugen_hi_' + D.lv, Math.floor(this.score));
+  },
   spellHist(name) {
     const all = this.loadJSON('mugen_spells', {});
     return all[D.lv + ':' + name] || { get: 0, tries: 0 };
@@ -66,6 +71,7 @@ const Game = {
   // si = 始める面（練習モードでは途中の面から）
   newGame(lv, si = 0) {
     D.lv = lv;
+    this.startIdx = si; this.cheated = this.cheat;
     this.score = 0; this.hiScore = this.loadHi(lv);
     this.player = new Player();
     if (lv === 0) this.player.lives = 3;
@@ -107,6 +113,7 @@ const Game = {
   update() {
     this.frame++;
     if (Input.pressed('mute')) Sound.muted = !Sound.muted;
+    if (Input.pressed('skip')) this.ctrlTap();
     switch (this.scene) {
       case 'title': this.updateTitle(); break;
       case 'diff': this.updateDiff(); break;
@@ -116,6 +123,17 @@ const Game = {
         break;
       case 'game': this.updateGame(); break;
     }
+  },
+  // Ctrl を 0.75 秒以内に3回押すと無敵の ON / OFF
+  ctrlTap() {
+    this.ctrlTaps = this.ctrlTaps.filter((f) => this.frame - f < 45);
+    this.ctrlTaps.push(this.frame);
+    if (this.ctrlTaps.length < 3) return;
+    this.ctrlTaps = [];
+    this.cheat = !this.cheat;
+    if (this.cheat) this.cheated = true;
+    Sound.play(this.cheat ? 'extend' : 'cancel');
+    this.notice = { text: this.cheat ? '無敵モード ON' : '無敵モード OFF', t: 120, col: '#ff9ad9' };
   },
   nav(n) {
     if (Input.pressed('up')) { this.menu = (this.menu + n - 1) % n; Sound.play('select'); }
@@ -136,14 +154,13 @@ const Game = {
     if (Input.pressed('bomb')) { this.scene = 'title'; this.menu = this.practice ? 1 : 0; Sound.play('cancel'); return; }
     if (Input.pressed('shot')) {
       this.lastDiff = this.menu; Sound.play('ok');
-      if (this.practice) { this.scene = 'stagesel'; this.menu = 0; }
-      else this.newGame(this.menu);
+      this.scene = 'stagesel'; this.menu = this.lastStage;
     }
   },
   updateStageSel() {
     this.nav(STAGES.length);
     if (Input.pressed('bomb')) { this.scene = 'diff'; this.menu = this.lastDiff; Sound.play('cancel'); return; }
-    if (Input.pressed('shot')) { Sound.play('ok'); this.newGame(this.lastDiff, this.menu); }
+    if (Input.pressed('shot')) { Sound.play('ok'); this.lastStage = this.menu; this.newGame(this.lastDiff, this.menu); }
   },
 
   updateGame() {
@@ -409,12 +426,13 @@ const Game = {
   currentBonus() {
     const b = this.boss, s = this.spellUI;
     if (!b || !s) return 0;
+    if (b.phase && b.phase.survival) return s.bonus;
     return Math.floor((s.bonus * (0.35 + (0.65 * b.timer) / b.timerMax)) / 10) * 10;
   },
   endPhase(boss, p, timeout) {
     if (!p.spell || !this.spellUI) return;
     const s = this.spellUI;
-    if (!timeout && boss.capture) {
+    if (boss.capture && (p.survival ? timeout : !timeout)) {
       const bonus = this.currentBonus();
       this.addScore(bonus);
       s.hist.get++;
@@ -422,7 +440,7 @@ const Game = {
       this.result = { text: '夢札取得！', sub: 'Bonus ' + fmt(bonus), t: 150, good: true };
       Sound.play('capture');
     } else {
-      this.result = { text: '取得失敗', sub: timeout ? '時間切れ' : '', t: 120, good: false };
+      this.result = { text: '取得失敗', sub: timeout && !p.survival ? '時間切れ' : '', t: 120, good: false };
     }
     this.spellUI = null;
     this.cutin = null;
@@ -552,6 +570,10 @@ const Game = {
     gg.addColorStop(0, '#8a6bff'); gg.addColorStop(1, p.isFull ? '#ffd27a' : '#e0a8ff');
     c.fillStyle = gg; c.fillRect(bx, by, (bw * p.gauge) / 100, 8);
     if (p.isFull && (this.frame >> 3) % 2) { c.strokeStyle = '#ffd27a'; c.strokeRect(bx - 0.5, by - 0.5, bw + 1, 9); }
+    if (this.cheat) {
+      c.textAlign = 'left'; c.font = `bold 12px ${FONT_SANS}`; c.fillStyle = (this.frame >> 4) % 2 ? '#ff7a9a' : '#ffb0c8';
+      c.fillText('無敵モード（Ctrl×3で解除）', x, 318);
+    }
     if (this.stage.drowse) {
       label('まどろみ', 278);
       c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(bx, 285, bw, 6);
@@ -720,7 +742,7 @@ const Game = {
     } else if (this.overlay === 'clear') {
       const ci = this.clearInfo;
       c.fillStyle = '#ffe6a0'; c.font = `bold 26px ${FONT_SERIF}`;
-      c.fillText(`${this.stage.name}　${this.stage.title}　踏破`, FW / 2, 120);
+      c.fillText(this.stage.clearTitle || `${this.stage.name}　${this.stage.title}　踏破`, FW / 2, 120);
       c.shadowBlur = 0;
       c.font = `14px ${FONT_SANS}`; c.fillStyle = '#ffffff';
       const rows = [['クリアボーナス', ci.clear], ['残機ボーナス', ci.life], ['獏喰ボーナス', ci.bomb], ['合計', ci.total]];
@@ -733,6 +755,7 @@ const Game = {
       const next = this.nextStageDef();
       if (next) c.fillText(`夢はさらに深く――　${next.name}「${next.title}」へ`, FW / 2, 310);
       else if (this.practice) c.fillText('― 練習おわり ―', FW / 2, 310);
+      else if (this.stage.ending) this.stage.ending.forEach((ln, i) => c.fillText(ln, FW / 2, 282 + i * 21));
       else {
         c.fillText('― 体験版はここまで ―', FW / 2, 300);
         c.fillText(this.stage.nextHint || '', FW / 2, 322);
@@ -804,13 +827,19 @@ const Game = {
       c.globalAlpha = 1;
     } else if (this.scene === 'stagesel') {
       c.fillStyle = '#d8ccff'; c.font = `14px ${FONT_SERIF}`;
-      c.fillText(`練習する夢を選んでください（${DIFFS[this.lastDiff].name}）`, 60, 236);
+      c.fillText(this.practice ? `練習する夢を選んでください（${DIFFS[this.lastDiff].name}）`
+        : `どの夢から始めますか（${DIFFS[this.lastDiff].name}・そのまま最後まで続きます）`, 60, 236);
       STAGES.forEach((st, i) => {
         const sel = i === this.menu;
         c.globalAlpha = sel ? 1 : 0.5;
-        c.fillStyle = sel ? '#ffe6a0' : '#cfc4ff'; c.font = `bold 20px ${FONT_SERIF}`;
-        c.fillText(`${sel ? '◆ ' : '　'}${st.name}　${st.title}`, 60, 280 + i * 40);
+        c.fillStyle = sel ? '#ffe6a0' : '#cfc4ff'; c.font = `bold 18px ${FONT_SERIF}`;
+        c.fillText(`${sel ? '◆ ' : '　'}${st.name}　${st.title}`, 60, 272 + i * 30);
       });
+      c.globalAlpha = 1;
+      if (this.menu > 0 && !this.practice) {
+        c.fillStyle = '#8f86b8'; c.font = `12px ${FONT_SANS}`;
+        c.fillText('※ 途中の夢から始めたときは、ハイスコアに記録されません', 60, 446);
+      }
       c.globalAlpha = 1;
     } else if (this.scene === 'howto') {
       c.fillStyle = 'rgba(10,6,30,0.75)'; c.fillRect(40, 210, 560, 236);
@@ -836,6 +865,10 @@ const Game = {
 
     c.textAlign = 'center'; c.fillStyle = '#8078a8'; c.font = `12px ${FONT_SANS}`;
     c.fillText('↑↓：選択　　Z：決定　　X：戻る　　M：ミュート', W / 2, H - 14);
+    if (this.cheat) {
+      c.textAlign = 'right'; c.fillStyle = '#ff7a9a'; c.font = `bold 12px ${FONT_SANS}`;
+      c.fillText('無敵モード ON', W - 12, 20);
+    }
   },
 };
 

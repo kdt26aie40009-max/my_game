@@ -130,7 +130,7 @@ class Player {
   }
 
   hit() {
-    if (this.invuln > 0 || this.state !== 'alive' || this.bombT > 0) return;
+    if (Game.cheat || this.invuln > 0 || this.state !== 'alive' || this.bombT > 0) return;
     this.state = 'dying';
     this.deathT = DEATHBOMB_FRAMES;
     Effects.flash(this.x, this.y, 30, '#ffffff', 12);
