@@ -762,6 +762,7 @@ function* stage6Script() {
 const STAGE6 = {
   no: 6, name: '最終夢', title: '夢そのもの',
   leftoverRate: 0.15,
+  midLife: true, // 中ボスを倒すと残機アイテム
   drowse: true,
   clearTitle: '夢幻異変　解決',
   ending: [

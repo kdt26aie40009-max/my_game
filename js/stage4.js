@@ -733,6 +733,7 @@ function* stage4Script() {
 const STAGE4 = {
   no: 4, name: '第四夢', title: '逆夢',
   leftoverRate: 0.11,
+  midLife: true, // 中ボスを倒すと残機アイテム
   nextHint: '第五夢「残夢」へ続く……',
   makeBg: () => new BgStage4(),
   script: stage4Script,

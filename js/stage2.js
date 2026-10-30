@@ -861,6 +861,7 @@ function* stage2Script() {
 const STAGE2 = {
   no: 2, name: '第二夢', title: '悪夢',
   leftoverRate: 0.07,
+  midLife: true, // 中ボスを倒すと残機アイテム
   nextHint: '第三夢「吉夢」へ続く……',
   makeBg: () => new BgStage2(),
   script: stage2Script,

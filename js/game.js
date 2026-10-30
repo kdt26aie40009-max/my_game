@@ -3,7 +3,8 @@
 //  ゲーム本体：シーン管理・当たり判定・UI・メインループ
 // ============================================================
 const STAGES = [STAGE1, STAGE2, STAGE3, STAGE4, STAGE5, STAGE6];
-const EXTENDS = [5000000, 12000000, 25000000, 40000000];
+const EXTEND_FIRST = 20000000; // 2000万点で残機+1。次は4000万、8000万……と倍々に
+const extendScore = (i) => EXTEND_FIRST * 2 ** i;
 
 const Game = {
   canvas: null, ctx: null, scene: 'title', frame: 0, menu: 0, lastDiff: 1, practice: false,
@@ -12,7 +13,7 @@ const Game = {
   player: null, score: 0, hiScore: 0,
   stage: null, stageIdx: 0, stageTasks: null, bg: null,
   boss: null, spellUI: null, result: null, banner: null, bgm: null, notice: null, cutin: null,
-  dlg: null, overlay: null, leftovers: [], extendIdx: 0, continues: 0, eaten: 0,
+  dlg: null, overlay: null, leftovers: [], extendIdx: 0, continues: 0, eaten: 0, pocT: 0,
   shake: 0, whiteFlash: 0, clearT: 0, clearInfo: null,
   fps: 60, fpsCount: 0, fpsTime: 0,
 
@@ -54,7 +55,7 @@ const Game = {
   saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できない環境は無視 */ } },
   loadHi(lv) { return this.loadJSON('mugen_hi_' + lv, 0); },
   saveHi() {
-    if (this.practice || this.startIdx > 0 || this.cheated) return; // 途中の面から・無敵を使ったプレイは記録しない
+    if (this.practice || this.startIdx > 0 || this.cheated) return; // 練習・無敵を使ったプレイは記録しない
     if (this.score > this.loadHi(D.lv)) this.saveJSON('mugen_hi_' + D.lv, Math.floor(this.score));
   },
   spellHist(name) {
@@ -100,10 +101,12 @@ const Game = {
     this.bg = this.stage.makeBg();
     this.stageTasks = new Tasks();
     this.stageTasks.add(this.stage.script());
+    this.pocT = POC_SHOW;
   },
   toTitle() {
     this.saveHi();
     this.scene = 'title'; this.menu = 0; this.overlay = null;
+    this.cheat = false; this.ctrlTaps = []; // 無敵はタイトルに戻ったら解除
   },
   after(frames, fn) {
     this.stageTasks.add((function* () { yield frames; fn(); })());
@@ -113,7 +116,7 @@ const Game = {
   update() {
     this.frame++;
     if (Input.pressed('mute')) Sound.muted = !Sound.muted;
-    if (Input.pressed('skip')) this.ctrlTap();
+    if (Input.pressed('skip') && this.scene === 'game') this.ctrlTap(); // 無敵の切り替えはステージ中だけ
     switch (this.scene) {
       case 'title': this.updateTitle(); break;
       case 'diff': this.updateDiff(); break;
@@ -124,10 +127,11 @@ const Game = {
       case 'game': this.updateGame(); break;
     }
   },
-  // Ctrl を 0.75 秒以内に3回押すと無敵の ON / OFF
+  // ステージ中に Ctrl を 1.2 秒以内に3回押すと無敵の ON / OFF
   ctrlTap() {
-    this.ctrlTaps = this.ctrlTaps.filter((f) => this.frame - f < 45);
-    this.ctrlTaps.push(this.frame);
+    const now = performance.now();
+    this.ctrlTaps = this.ctrlTaps.filter((t) => now - t < 1200);
+    this.ctrlTaps.push(now);
     if (this.ctrlTaps.length < 3) return;
     this.ctrlTaps = [];
     this.cheat = !this.cheat;
@@ -154,7 +158,8 @@ const Game = {
     if (Input.pressed('bomb')) { this.scene = 'title'; this.menu = this.practice ? 1 : 0; Sound.play('cancel'); return; }
     if (Input.pressed('shot')) {
       this.lastDiff = this.menu; Sound.play('ok');
-      this.scene = 'stagesel'; this.menu = this.lastStage;
+      if (this.practice) { this.scene = 'stagesel'; this.menu = this.lastStage; }
+      else this.newGame(this.menu); // はじめる：第一夢から
     }
   },
   updateStageSel() {
@@ -186,6 +191,7 @@ const Game = {
     if (this.spellUI) this.spellUI.t++;
     if (this.whiteFlash > 0) this.whiteFlash--;
     if (this.shake > 0) this.shake--;
+    if (this.pocT > 0) this.pocT--;
     this.checkExtend();
   },
 
@@ -225,6 +231,7 @@ const Game = {
     p.lives = 2; p.bombs = 3;
     p.state = 'dead'; p.respawnT = 1; p.invuln = 200;
     this.overlay = null;
+    this.pocT = POC_SHOW;
   },
 
   updateDialog() {
@@ -396,7 +403,10 @@ const Game = {
       }
       case 'eat': this.addScore(p.isFull ? 200 : 100); break;
       case 'bomb': p.bombs = Math.min(8, p.bombs + 1); Sound.play('extend'); break;
-      case 'life': p.lives = Math.min(8, p.lives + 1); Sound.play('extend'); break;
+      case 'life':
+        p.lives = Math.min(8, p.lives + 1); Sound.play('extend');
+        this.notice = { text: 'Extend!!', t: 120, col: '#ff9ad9' };
+        break;
     }
   },
 
@@ -405,7 +415,7 @@ const Game = {
     if (this.score > this.hiScore) this.hiScore = this.score;
   },
   checkExtend() {
-    while (this.extendIdx < EXTENDS.length && this.score >= EXTENDS[this.extendIdx]) {
+    while (this.score >= extendScore(this.extendIdx)) {
       this.extendIdx++;
       this.player.lives = Math.min(8, this.player.lives + 1);
       this.notice = { text: 'Extend!!', t: 120, col: '#ff9ad9' };
@@ -452,6 +462,7 @@ const Game = {
       this.shake = 30;
       this.whiteFlash = b.isMid ? 10 : 30;
       Items.spawn(b.isMid ? 'bigpower' : 'bomb', b.x, b.y);
+      if (b.isMid && this.stage.midLife) Items.spawn('life', b.x, b.y - 10);
       Items.scatter('point', b.isMid ? 8 : 16, b.x, b.y, 40);
     }
   },
@@ -572,7 +583,7 @@ const Game = {
     if (p.isFull && (this.frame >> 3) % 2) { c.strokeStyle = '#ffd27a'; c.strokeRect(bx - 0.5, by - 0.5, bw + 1, 9); }
     if (this.cheat) {
       c.textAlign = 'left'; c.font = `bold 12px ${FONT_SANS}`; c.fillStyle = (this.frame >> 4) % 2 ? '#ff7a9a' : '#ffb0c8';
-      c.fillText('無敵モード（Ctrl×3で解除）', x, 318);
+      c.fillText('無敵モード（Ctrl×3で解除）', x, 307);
     }
     if (this.stage.drowse) {
       label('まどろみ', 278);
@@ -661,7 +672,31 @@ const Game = {
     c.restore();
   },
 
+  // アイテム回収ライン「Item Get Border Line!」
+  drawPocLine(c) {
+    if (this.pocT <= 0) return;
+    const t = this.pocT, y = POC_LINE;
+    c.save();
+    c.globalAlpha = Math.min(1, t / 40, (POC_SHOW - t) / 20);
+    c.font = `italic 13px ${FONT_SERIF}`;
+    const label = 'Item Get Border Line!', hw = c.measureText(label).width / 2 + 10;
+    const seg = (x0, x1, fadeLeft) => {
+      const g = c.createLinearGradient(x0, 0, x1, 0);
+      g.addColorStop(fadeLeft ? 0 : 1, 'rgba(232,224,255,0)');
+      g.addColorStop(fadeLeft ? 1 : 0, 'rgba(232,224,255,0.85)');
+      c.strokeStyle = g; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(x0, y + 0.5); c.lineTo(x1, y + 0.5); c.stroke();
+    };
+    seg(6, FW / 2 - hw, true);
+    seg(FW / 2 + hw, FW - 6, false);
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.shadowColor = '#9a7bff'; c.shadowBlur = 6;
+    c.fillStyle = '#f0eaff'; c.fillText(label, FW / 2, y);
+    c.restore();
+  },
+
   drawTexts(c) {
+    this.drawPocLine(c);
     c.save();
     c.textAlign = 'center';
     if (this.banner) {
@@ -827,19 +862,13 @@ const Game = {
       c.globalAlpha = 1;
     } else if (this.scene === 'stagesel') {
       c.fillStyle = '#d8ccff'; c.font = `14px ${FONT_SERIF}`;
-      c.fillText(this.practice ? `練習する夢を選んでください（${DIFFS[this.lastDiff].name}）`
-        : `どの夢から始めますか（${DIFFS[this.lastDiff].name}・そのまま最後まで続きます）`, 60, 236);
+      c.fillText(`練習する夢を選んでください（${DIFFS[this.lastDiff].name}）`, 60, 236);
       STAGES.forEach((st, i) => {
         const sel = i === this.menu;
         c.globalAlpha = sel ? 1 : 0.5;
         c.fillStyle = sel ? '#ffe6a0' : '#cfc4ff'; c.font = `bold 18px ${FONT_SERIF}`;
         c.fillText(`${sel ? '◆ ' : '　'}${st.name}　${st.title}`, 60, 272 + i * 30);
       });
-      c.globalAlpha = 1;
-      if (this.menu > 0 && !this.practice) {
-        c.fillStyle = '#8f86b8'; c.font = `12px ${FONT_SANS}`;
-        c.fillText('※ 途中の夢から始めたときは、ハイスコアに記録されません', 60, 446);
-      }
       c.globalAlpha = 1;
     } else if (this.scene === 'howto') {
       c.fillStyle = 'rgba(10,6,30,0.75)'; c.fillRect(40, 210, 560, 236);
@@ -855,7 +884,7 @@ const Game = {
         ['悪夢', '闇は少しずつ迫る。弾をかすめて悪夢をかじると押し返せる'],
         ['福', '金の銭は当たらない。取ると得点、ただし眠くなって遅くなる'],
         ['砂時計', '返ると白抜きの弾が逆走する。「凶」の印の中は安全'],
-        ['回収', '画面上部へ行くとアイテムを自動回収'],
+        ['回収', '上部の線（Item Get Border Line）より上で、Pと点を全部吸い寄せる'],
       ];
       lines.forEach(([k, v], i) => {
         c.font = `bold 14px ${FONT_SERIF}`; c.fillStyle = '#ffe6a0'; c.fillText(k, 60, 230 + i * 19.5);
@@ -865,10 +894,6 @@ const Game = {
 
     c.textAlign = 'center'; c.fillStyle = '#8078a8'; c.font = `12px ${FONT_SANS}`;
     c.fillText('↑↓：選択　　Z：決定　　X：戻る　　M：ミュート', W / 2, H - 14);
-    if (this.cheat) {
-      c.textAlign = 'right'; c.fillStyle = '#ff7a9a'; c.font = `bold 12px ${FONT_SANS}`;
-      c.fillText('無敵モード ON', W - 12, 20);
-    }
   },
 };
 

@@ -769,6 +769,7 @@ function* stage3Script() {
 const STAGE3 = {
   no: 3, name: '第三夢', title: '吉夢',
   leftoverRate: 0.09,
+  midLife: true, // 中ボスを倒すと残機アイテム
   drowse: true, // 情報欄に「まどろみ」を表示
   nextHint: '第四夢「逆夢」へ続く……',
   makeBg: () => new BgStage3(),
