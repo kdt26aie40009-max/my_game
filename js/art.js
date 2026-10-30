@@ -14,6 +14,8 @@ const ART_MANIFEST = {
   // muma_cutin: 'assets/muma_cutin.png',
   // boss3: 'assets/boss3.png',            // 吉夢の精霊
   // boss3_cutin: 'assets/boss3_cutin.png',
+  // boss4: 'assets/boss4.png',            // 逆夢の精霊
+  // boss4_cutin: 'assets/boss4_cutin.png',
 };
 
 const Art = {

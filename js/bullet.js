@@ -14,6 +14,7 @@ class Bullet {
     this.alive = true; this.grazed = false;
     this.fake = false;     // 見た目だけの弾（当たらない）。揺らめき、低速移動中は透ける
     this.bless = false;    // 福の弾（当たらない。触れると得点＋まどろむ）
+    this.rev = false;      // 砂時計が返ると逆走する（逆夢）
     this.noClear = false;  // フェーズ終了で消えない
     this.alpha = 1;
     this.jit = 0;          // 震え（悪夢の弾が化ける前触れ）

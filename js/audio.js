@@ -80,6 +80,7 @@ const Sound = {
       case 'cancel': this.tone(600, 0.08, 'triangle', 0.08, 300); break;
       case 'pause': this.tone(700, 0.1, 'sine', 0.08); break;
       case 'bless': [1568, 2093].forEach((f, i) => this.tone(f, 0.25, 'sine', 0.05, null, i * 0.04)); break; // 鈴の音
+      case 'flip': this.tone(1320, 0.35, 'sine', 0.09, 660); this.tone(660, 0.35, 'sine', 0.07, 1320, 0.06); break; // 砂時計が返る
       case 'beat': this.tone(70, 0.14, 'sine', 0.35, 50); this.tone(62, 0.14, 'sine', 0.28, 45, 0.2); break; // 恐怖の鼓動
       case 'blink': this.tone(160, 0.45, 'sine', 0.22, 50); this.noise(0.3, 0.06, 600); break;
     }

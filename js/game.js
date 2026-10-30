@@ -2,7 +2,7 @@
 // ============================================================
 //  ゲーム本体：シーン管理・当たり判定・UI・メインループ
 // ============================================================
-const STAGES = [STAGE1, STAGE2, STAGE3];
+const STAGES = [STAGE1, STAGE2, STAGE3, STAGE4];
 const EXTENDS = [5000000, 12000000, 25000000, 40000000];
 
 const Game = {
@@ -824,11 +824,12 @@ const Game = {
         ['予告', '光の線・きらめきは「これから起きること」。明るいほど近い'],
         ['悪夢', '闇は少しずつ迫る。弾をかすめて悪夢をかじると押し返せる'],
         ['福', '金の銭は当たらない。取ると得点、ただし眠くなって遅くなる'],
+        ['砂時計', '返ると白抜きの弾が逆走する。「凶」の印の中は安全'],
         ['回収', '画面上部へ行くとアイテムを自動回収'],
       ];
       lines.forEach(([k, v], i) => {
-        c.font = `bold 14px ${FONT_SERIF}`; c.fillStyle = '#ffe6a0'; c.fillText(k, 60, 232 + i * 21.5);
-        c.font = `13px ${FONT_SANS}`; c.fillStyle = '#ffffff'; c.fillText(v, 150, 232 + i * 21.5);
+        c.font = `bold 14px ${FONT_SERIF}`; c.fillStyle = '#ffe6a0'; c.fillText(k, 60, 230 + i * 19.5);
+        c.font = `13px ${FONT_SANS}`; c.fillStyle = '#ffffff'; c.fillText(v, 150, 230 + i * 19.5);
       });
     }
 

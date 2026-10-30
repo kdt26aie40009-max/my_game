@@ -25,6 +25,8 @@ const BTYPES = {
   petal:   { r: 2.6, size: 18, oriented: true }, // 花びら
   gem:     { r: 3.0, size: 18, oriented: true }, // 宝石
   fuku:    { r: 6.0, size: 22, spin: 0.03 },     // 福（穴あき銭。当たらない。触れるとまどろむ）
+  ring:    { r: 4.0, size: 20 },                 // 白抜きの玉（逆夢：砂時計が返ると逆走する）
+  arrow:   { r: 3.0, size: 20, oriented: true }, // 白抜きの矢じり（同上。向きが見える）
 };
 
 const ITEM_SIZE = { power: 12, bigpower: 18, point: 12, bomb: 16, life: 16, eat: 8 };
@@ -132,6 +134,18 @@ const Sprites = {
         glow(g, 0, 0, h * 0.75, col, 0.45);
         g.fillStyle = col; g.beginPath(); g.moveTo(8, 0); g.lineTo(0, -4.6); g.lineTo(-8, 0); g.lineTo(0, 4.6); g.closePath(); g.fill();
         g.fillStyle = '#fff'; g.beginPath(); g.moveTo(5, 0); g.lineTo(0, -2.2); g.lineTo(-4, 0); g.lineTo(0, 2.2); g.closePath(); g.fill();
+        break;
+      case 'ring': // 中が抜けている ＝ 裏返る弾
+        glow(g, 0, 0, h, col, 0.45);
+        g.strokeStyle = col; g.lineWidth = 2.6; g.beginPath(); g.arc(0, 0, 5.6, 0, TAU); g.stroke();
+        g.strokeStyle = '#fff'; g.lineWidth = 1.1; g.beginPath(); g.arc(0, 0, 5.6, 0, TAU); g.stroke();
+        break;
+      case 'arrow':
+        glow(g, 0, 0, h * 0.7, col, 0.4);
+        g.lineJoin = 'round';
+        g.beginPath(); g.moveTo(7.5, 0); g.lineTo(-5, -4.6); g.lineTo(-2.5, 0); g.lineTo(-5, 4.6); g.closePath();
+        g.strokeStyle = col; g.lineWidth = 2.4; g.stroke();
+        g.strokeStyle = '#fff'; g.lineWidth = 1; g.stroke();
         break;
       case 'fuku': // 白い芯がない ＝ 危なくない弾、と一目でわかるように
         glow(g, 0, 0, h, '#ffd970', 0.55);
