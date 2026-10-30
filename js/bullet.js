@@ -12,7 +12,8 @@ class Bullet {
     this.frame = 0;
     this.delay = 6;        // 出現フラッシュ中（当たり判定なし）
     this.alive = true; this.grazed = false;
-    this.fake = false;     // 見た目だけの弾（当たらない）
+    this.fake = false;     // 見た目だけの弾（当たらない）。揺らめき、低速移動中は透ける
+    this.bless = false;    // 福の弾（当たらない。触れると得点＋まどろむ）
     this.noClear = false;  // フェーズ終了で消えない
     this.alpha = 1;
     this.jit = 0;          // 震え（悪夢の弾が化ける前触れ）
@@ -90,6 +91,7 @@ const Bullets = {
       const spr = Sprites.bullet(b.type, b.color);
       let sc = SCALE, alpha = b.alpha;
       if (b.delay > 0) { sc *= 1 + b.delay * 0.18; alpha *= 0.5; }
+      if (b.fake) alpha *= Game.player.focused ? 0.22 : 0.75 + 0.2 * Math.sin(b.frame * 0.25);
       c.globalAlpha = alpha;
       let bx = b.x, by = b.y;
       if (b.jit) { bx += rand(-b.jit, b.jit); by += rand(-b.jit, b.jit); }

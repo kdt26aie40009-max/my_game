@@ -21,6 +21,10 @@ const BTYPES = {
   shade:   { r: 4.4, size: 22 },                 // 闇の弾（黒い芯）
   moth:    { r: 3.2, size: 22, oriented: true }, // 蛾
   shard:   { r: 2.4, size: 18, oriented: true }, // 鏡の破片
+  heart:   { r: 3.6, size: 20 },
+  petal:   { r: 2.6, size: 18, oriented: true }, // 花びら
+  gem:     { r: 3.0, size: 18, oriented: true }, // 宝石
+  fuku:    { r: 6.0, size: 22, spin: 0.03 },     // 福（穴あき銭。当たらない。触れるとまどろむ）
 };
 
 const ITEM_SIZE = { power: 12, bigpower: 18, point: 12, bomb: 16, life: 16, eat: 8 };
@@ -44,6 +48,13 @@ function starPath(g, x, y, R, r, n = 5, rot = -Math.PI / 2) {
     const rr = i % 2 ? r : R, a = rot + (i * Math.PI) / n;
     g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
   }
+  g.closePath();
+}
+function heartPath(g, x, y, s) {
+  g.beginPath();
+  g.moveTo(x, y + s * 0.9);
+  g.bezierCurveTo(x - s * 1.6, y - s * 0.2, x - s * 0.6, y - s * 1.3, x, y - s * 0.45);
+  g.bezierCurveTo(x + s * 0.6, y - s * 1.3, x + s * 1.6, y - s * 0.2, x, y + s * 0.9);
   g.closePath();
 }
 function makeCanvas(w, h = w) {
@@ -104,6 +115,29 @@ const Sprites = {
         glow(g, 0, 0, h * 0.7, col, 0.4);
         g.fillStyle = col; g.beginPath(); g.moveTo(8, 0); g.lineTo(-6, -3.6); g.lineTo(-4, 0); g.lineTo(-6, 3.6); g.closePath(); g.fill();
         g.fillStyle = '#fff'; g.beginPath(); g.moveTo(6, 0); g.lineTo(-3, -1.4); g.lineTo(-3, 1.4); g.closePath(); g.fill();
+        break;
+      case 'heart':
+        glow(g, 0, 0, h, col, 0.5);
+        g.fillStyle = col; heartPath(g, 0, 0.5, 7); g.fill();
+        g.fillStyle = '#fff'; heartPath(g, 0, 0.5, 4); g.fill();
+        break;
+      case 'petal': // 先が割れた桜の花びら。頭が進行方向
+        glow(g, 0, 0, h * 0.75, col, 0.4);
+        g.fillStyle = col; g.beginPath();
+        g.moveTo(-6, 0); g.quadraticCurveTo(0, -5.5, 6.5, -1.8); g.lineTo(4.6, 0); g.lineTo(6.5, 1.8); g.quadraticCurveTo(0, 5.5, -6, 0);
+        g.fill();
+        ellipse(g, -0.5, 0, 3.6, 1.6, '#fff');
+        break;
+      case 'gem':
+        glow(g, 0, 0, h * 0.75, col, 0.45);
+        g.fillStyle = col; g.beginPath(); g.moveTo(8, 0); g.lineTo(0, -4.6); g.lineTo(-8, 0); g.lineTo(0, 4.6); g.closePath(); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.moveTo(5, 0); g.lineTo(0, -2.2); g.lineTo(-4, 0); g.lineTo(0, 2.2); g.closePath(); g.fill();
+        break;
+      case 'fuku': // 白い芯がない ＝ 危なくない弾、と一目でわかるように
+        glow(g, 0, 0, h, '#ffd970', 0.55);
+        circle(g, 0, 0, 8, '#e0a830'); circle(g, 0, 0, 6.6, '#ffe48a');
+        g.fillStyle = '#9a6a18'; g.fillRect(-2.2, -2.2, 4.4, 4.4);
+        g.strokeStyle = '#c08a20'; g.lineWidth = 0.8; g.beginPath(); g.arc(0, 0, 4.6, 0, TAU); g.stroke();
         break;
     }
     return c;

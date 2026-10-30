@@ -2,7 +2,7 @@
 // ============================================================
 //  ゲーム本体：シーン管理・当たり判定・UI・メインループ
 // ============================================================
-const STAGES = [STAGE1, STAGE2];
+const STAGES = [STAGE1, STAGE2, STAGE3];
 const EXTENDS = [5000000, 12000000, 25000000, 40000000];
 
 const Game = {
@@ -263,6 +263,11 @@ const Game = {
     for (const b of Bullets.list) {
       if (!b.alive || b.delay > 0 || b.fake) continue;
       const dx = b.x - p.x, dy = b.y - p.y, d2 = dx * dx + dy * dy;
+      if (b.bless) { // 福は当たらない。触れると受け取る
+        const br = p.r + b.r + 4;
+        if (d2 < br * br) this.onBless(b);
+        continue;
+      }
       const hr = p.r + b.r;
       if (d2 < hr * hr) {
         if (p.invuln <= 0 && p.bombT <= 0) { p.hit(); return; }
@@ -283,7 +288,7 @@ const Game = {
     this.player.addGauge(0.12);
     this.eaten++;
     // 夢幻異変：食べた夢が消えずに戻ってくる
-    if (Math.random() < this.stage.leftoverRate) this.leftovers.push({ x: b.x, y: b.y, type: b.type, color: b.color, t: 240 });
+    if (!b.bless && Math.random() < this.stage.leftoverRate) this.leftovers.push({ x: b.x, y: b.y, type: b.type, color: b.color, t: 240 });
   },
   updateLeftovers() {
     for (const l of this.leftovers) {
@@ -306,6 +311,16 @@ const Game = {
     Effects.spark((p.x + b.x) / 2, (p.y + b.y) / 2, '#ffffff', 2, 2, 12, 1.2);
     Sound.play('graze');
   },
+  onBless(b) {
+    const p = this.player;
+    b.alive = false;
+    const v = p.isFull ? 15000 : 10000;
+    this.addScore(v);
+    Effects.popup(b.x, b.y - 6, fmt(v), '#ffe68a');
+    Effects.spark(b.x, b.y, '#ffd970', 4, 1.5, 16, 1.5);
+    p.drowse = Math.min(1, p.drowse + 0.1);
+    Sound.play('bless');
+  },
   onFull() {
     this.notice = { text: '満腹！　ショット強化', t: 120, col: '#ffd27a' };
     Effects.ring(this.player.x, this.player.y, '#ffd27a', 70, 30, 3);
@@ -326,6 +341,7 @@ const Game = {
     Effects.spark(p.x, p.y, '#e0d0ff', 30, 5, 50, 3);
     if (this.boss && this.spellUI) this.boss.capture = false;
     if (this.bg.onMiss) this.bg.onMiss();
+    p.drowse = 0;
     p.power = Math.max(1, p.power - 0.5);
     for (let i = 0; i < 6; i++) Items.spawn('power', p.x + rand(-30, 30), p.y - 10, { vy: -rand(3, 5), vx: rand(-1.5, 1.5) });
     Bullets.clear(false);
@@ -485,7 +501,7 @@ const Game = {
 
     c.strokeStyle = 'rgba(200,180,255,0.55)'; c.lineWidth = 1;
     c.strokeRect(FX - 0.5, FY - 0.5, FW + 1, FH + 1);
-    if (b && b.alive) { // フィールド下のボス位置マーカー
+    if (b && b.alive && !b.pd.hideMarker) { // フィールド下のボス位置マーカー
       c.fillStyle = '#ff7a9a'; c.font = `bold 9px ${FONT_SANS}`; c.textAlign = 'center';
       c.fillText('ENEMY', FX + clamp(b.x, 12, FW - 12), FY + FH + 11);
     }
@@ -535,6 +551,11 @@ const Game = {
     gg.addColorStop(0, '#8a6bff'); gg.addColorStop(1, p.isFull ? '#ffd27a' : '#e0a8ff');
     c.fillStyle = gg; c.fillRect(bx, by, (bw * p.gauge) / 100, 8);
     if (p.isFull && (this.frame >> 3) % 2) { c.strokeStyle = '#ffd27a'; c.strokeRect(bx - 0.5, by - 0.5, bw + 1, 9); }
+    if (this.stage.drowse) {
+      label('まどろみ', 278);
+      c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(bx, 285, bw, 6);
+      c.fillStyle = '#ffd970'; c.fillRect(bx, 285, bw * p.drowse, 6);
+    }
 
     // ロゴ
     c.save();
@@ -802,11 +823,12 @@ const Game = {
         ['食べ残し', 'この異変では、食べた夢の一部があとで戻ってくる……'],
         ['予告', '光の線・きらめきは「これから起きること」。明るいほど近い'],
         ['悪夢', '闇は少しずつ迫る。弾をかすめて悪夢をかじると押し返せる'],
+        ['福', '金の銭は当たらない。取ると得点、ただし眠くなって遅くなる'],
         ['回収', '画面上部へ行くとアイテムを自動回収'],
       ];
       lines.forEach(([k, v], i) => {
-        c.font = `bold 14px ${FONT_SERIF}`; c.fillStyle = '#ffe6a0'; c.fillText(k, 60, 236 + i * 23.5);
-        c.font = `13px ${FONT_SANS}`; c.fillStyle = '#ffffff'; c.fillText(v, 150, 236 + i * 23.5);
+        c.font = `bold 14px ${FONT_SERIF}`; c.fillStyle = '#ffe6a0'; c.fillText(k, 60, 232 + i * 21.5);
+        c.font = `13px ${FONT_SANS}`; c.fillStyle = '#ffffff'; c.fillText(v, 150, 232 + i * 21.5);
       });
     }
 

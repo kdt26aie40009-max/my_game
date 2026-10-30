@@ -10,6 +10,10 @@ const ART_MANIFEST = {
   // boss1_cutin: 'assets/boss1_cutin.png', // 夢札宣言時のカットイン立ち絵
   // boss2: 'assets/boss2.png',            // 悪夢の精霊
   // boss2_cutin: 'assets/boss2_cutin.png',
+  // muma: 'assets/muma.png',              // 夢魔（第三夢の中ボス）
+  // muma_cutin: 'assets/muma_cutin.png',
+  // boss3: 'assets/boss3.png',            // 吉夢の精霊
+  // boss3_cutin: 'assets/boss3_cutin.png',
 };
 
 const Art = {

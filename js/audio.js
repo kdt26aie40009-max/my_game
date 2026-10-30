@@ -5,7 +5,7 @@
 // ============================================================
 const Sound = {
   ctx: null, out: null, noiseBuf: null, muted: false, last: {},
-  gaps: { bullet: 0.07, graze: 0.04, hit: 0.05, item: 0.05, shot: 0.07, warn: 0.06, tick: 0.05, power: 0.05 },
+  gaps: { bless: 0.05, bullet: 0.07, graze: 0.04, hit: 0.05, item: 0.05, shot: 0.07, warn: 0.06, tick: 0.05, power: 0.05 },
 
   unlock() {
     if (!this.ctx) {
@@ -79,6 +79,7 @@ const Sound = {
       case 'ok': this.tone(880, 0.08, 'triangle', 0.08, 1320); break;
       case 'cancel': this.tone(600, 0.08, 'triangle', 0.08, 300); break;
       case 'pause': this.tone(700, 0.1, 'sine', 0.08); break;
+      case 'bless': [1568, 2093].forEach((f, i) => this.tone(f, 0.25, 'sine', 0.05, null, i * 0.04)); break; // 鈴の音
       case 'beat': this.tone(70, 0.14, 'sine', 0.35, 50); this.tone(62, 0.14, 'sine', 0.28, 45, 0.2); break; // 恐怖の鼓動
       case 'blink': this.tone(160, 0.45, 'sine', 0.22, 50); this.noise(0.3, 0.06, 600); break;
     }

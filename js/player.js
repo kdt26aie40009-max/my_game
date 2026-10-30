@@ -18,6 +18,7 @@ class Player {
     this.invuln = 120; this.deathT = 0; this.respawnT = 0;
     this.shotT = 0; this.bombT = 0; this.bombR = 0;
     this.graze = 0; this.gauge = 0; this.fullT = 0;
+    this.drowse = 0;     // まどろみ 0〜1（福を受け取ると増え、動きが遅くなる）
     this.trail = [];     // 過去の位置（予知夢・残夢の弾幕が使う）
     this.shots = [];
     this.focusT = 0; this.frame = 0;
@@ -30,6 +31,7 @@ class Player {
   update() {
     this.frame++;
     if (this.invuln > 0) this.invuln--;
+    if (this.drowse > 0) this.drowse = Math.max(0, this.drowse - 0.003);
     this.focusT = lerp(this.focusT, this.focused ? 1 : 0, 0.25);
     if (this.fullT > 0) {
       this.fullT--;
@@ -80,7 +82,7 @@ class Player {
     if (Input.held('right')) dx++;
     if (Input.held('up')) dy--;
     if (Input.held('down')) dy++;
-    const sp = this.focused ? 1.9 : 4.3;
+    const sp = (this.focused ? 1.9 : 4.3) * (1 - this.drowse * 0.55);
     const k = dx && dy ? Math.SQRT1_2 : 1;
     const nx = clamp(this.x + dx * sp * k, 8, FW - 8);
     const ny = clamp(this.y + dy * sp * k, 16, FH - 14);
@@ -120,6 +122,7 @@ class Player {
     if (!Input.pressed('bomb') || this.bombs <= 0 || this.bombT > 0 || Game.dlg) return false;
     this.bombs--;
     this.bombT = BOMB_TIME;
+    this.drowse = 0;
     this.invuln = Math.max(this.invuln, BOMB_TIME + 40);
     Game.onBomb();
     Sound.play('bomb');
@@ -153,6 +156,15 @@ class Player {
     const img = Art.get('player');
     if (img) Art.draw(c, img, 0, 0, 40);
     else this.drawBaku(c);
+    if (this.drowse > 0.05) { // まどろみ：金色のもやと「z」
+      glow(c, 0, 0, 26, '#ffd970', this.drowse * 0.45);
+      c.font = `bold 9px ${FONT_SANS}`; c.textAlign = 'center';
+      for (let i = 0; i < 2; i++) {
+        const t = ((this.frame + i * 40) % 80) / 80;
+        c.fillStyle = hexA('#fff3c8', Math.min(1, this.drowse * 1.5) * (1 - t));
+        c.fillText('z', 10 + t * 8, -12 - t * 16);
+      }
+    }
     c.restore();
   }
 
