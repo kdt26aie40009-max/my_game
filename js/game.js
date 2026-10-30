@@ -403,10 +403,7 @@ const Game = {
       }
       case 'eat': this.addScore(p.isFull ? 200 : 100); break;
       case 'bomb': p.bombs = Math.min(8, p.bombs + 1); Sound.play('extend'); break;
-      case 'life':
-        p.lives = Math.min(8, p.lives + 1); Sound.play('extend');
-        this.notice = { text: 'Extend!!', t: 120, col: '#ff9ad9' };
-        break;
+      case 'life': p.lives = Math.min(8, p.lives + 1); Sound.play('extend'); break; // 「Extend!!」は点数での残機アップのときだけ
     }
   },
 
