@@ -2,11 +2,11 @@
 // ============================================================
 //  ゲーム本体：シーン管理・当たり判定・UI・メインループ
 // ============================================================
-const STAGES = [STAGE1];
+const STAGES = [STAGE1, STAGE2];
 const EXTENDS = [5000000, 12000000, 25000000, 40000000];
 
 const Game = {
-  canvas: null, ctx: null, scene: 'title', frame: 0, menu: 0, lastDiff: 1,
+  canvas: null, ctx: null, scene: 'title', frame: 0, menu: 0, lastDiff: 1, practice: false,
   player: null, score: 0, hiScore: 0,
   stage: null, stageIdx: 0, stageTasks: null, bg: null,
   boss: null, spellUI: null, result: null, banner: null, bgm: null, notice: null, cutin: null,
@@ -51,7 +51,7 @@ const Game = {
   loadJSON(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } },
   saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できない環境は無視 */ } },
   loadHi(lv) { return this.loadJSON('mugen_hi_' + lv, 0); },
-  saveHi() { if (this.score > this.loadHi(D.lv)) this.saveJSON('mugen_hi_' + D.lv, Math.floor(this.score)); },
+  saveHi() { if (!this.practice && this.score > this.loadHi(D.lv)) this.saveJSON('mugen_hi_' + D.lv, Math.floor(this.score)); },
   spellHist(name) {
     const all = this.loadJSON('mugen_spells', {});
     return all[D.lv + ':' + name] || { get: 0, tries: 0 };
@@ -63,17 +63,30 @@ const Game = {
   },
 
   // ---------------- ゲーム開始 ----------------
-  newGame(lv) {
+  // si = 始める面（練習モードでは途中の面から）
+  newGame(lv, si = 0) {
     D.lv = lv;
     this.score = 0; this.hiScore = this.loadHi(lv);
     this.player = new Player();
     if (lv === 0) this.player.lives = 3;
+    if (si > 0) this.player.power = Math.min(4, 1 + si * 1.5); // 途中の面から始めるときの霊力
+    this.extendIdx = 0; this.continues = 0; this.eaten = 0;
+    this.resetField();
+    this.startStage(si);
+    this.scene = 'game';
+  },
+  resetField() {
     Bullets.list = []; Enemies.list = []; Items.list = []; Effects.parts = []; Effects.warns = [];
     this.leftovers = []; this.boss = null; this.spellUI = null; this.result = null; this.banner = null;
     this.bgm = null; this.notice = null; this.cutin = null; this.dlg = null; this.overlay = null;
-    this.extendIdx = 0; this.continues = 0; this.eaten = 0; this.shake = 0; this.whiteFlash = 0;
-    this.startStage(0);
-    this.scene = 'game';
+    this.shake = 0; this.whiteFlash = 0;
+  },
+  nextStage() {
+    this.resetField();
+    const p = this.player;
+    p.x = FW / 2; p.y = FH - 48; p.vx = p.vy = 0; p.invuln = 120;
+    p.shots = []; p.trail = []; p.bombT = 0; p.bombR = 0;
+    this.startStage(this.stageIdx + 1);
   },
   startStage(i) {
     this.stageIdx = i;
@@ -97,6 +110,7 @@ const Game = {
     switch (this.scene) {
       case 'title': this.updateTitle(); break;
       case 'diff': this.updateDiff(); break;
+      case 'stagesel': this.updateStageSel(); break;
       case 'howto':
         if (Input.pressed('shot') || Input.pressed('bomb')) { this.scene = 'title'; Sound.play('cancel'); }
         break;
@@ -107,20 +121,29 @@ const Game = {
     if (Input.pressed('up')) { this.menu = (this.menu + n - 1) % n; Sound.play('select'); }
     if (Input.pressed('down')) { this.menu = (this.menu + 1) % n; Sound.play('select'); }
   },
-  titleItems() { return ['はじめる', '操作方法', 'サウンド：' + (Sound.muted ? 'OFF' : 'ON')]; },
+  titleItems() { return ['はじめる', '練習（夢を選ぶ）', '操作方法', 'サウンド：' + (Sound.muted ? 'OFF' : 'ON')]; },
   updateTitle() {
-    this.nav(3);
+    this.nav(4);
     if (Input.pressed('shot')) {
       Sound.play('ok');
-      if (this.menu === 0) { this.scene = 'diff'; this.menu = this.lastDiff; }
-      else if (this.menu === 1) this.scene = 'howto';
+      if (this.menu <= 1) { this.practice = this.menu === 1; this.scene = 'diff'; this.menu = this.lastDiff; }
+      else if (this.menu === 2) this.scene = 'howto';
       else Sound.muted = !Sound.muted;
     }
   },
   updateDiff() {
     this.nav(4);
-    if (Input.pressed('bomb')) { this.scene = 'title'; this.menu = 0; Sound.play('cancel'); return; }
-    if (Input.pressed('shot')) { this.lastDiff = this.menu; Sound.play('ok'); this.newGame(this.menu); }
+    if (Input.pressed('bomb')) { this.scene = 'title'; this.menu = this.practice ? 1 : 0; Sound.play('cancel'); return; }
+    if (Input.pressed('shot')) {
+      this.lastDiff = this.menu; Sound.play('ok');
+      if (this.practice) { this.scene = 'stagesel'; this.menu = 0; }
+      else this.newGame(this.menu);
+    }
+  },
+  updateStageSel() {
+    this.nav(STAGES.length);
+    if (Input.pressed('bomb')) { this.scene = 'diff'; this.menu = this.lastDiff; Sound.play('cancel'); return; }
+    if (Input.pressed('shot')) { Sound.play('ok'); this.newGame(this.lastDiff, this.menu); }
   },
 
   updateGame() {
@@ -170,7 +193,10 @@ const Game = {
       this.clearT++;
       this.bg.update(false);
       Effects.update();
-      if (this.clearT > 60 && Input.pressed('shot')) { Sound.play('ok'); this.toTitle(); }
+      if (this.clearT > 60 && Input.pressed('shot')) {
+        Sound.play('ok');
+        if (this.nextStageDef()) this.nextStage(); else this.toTitle();
+      }
     }
   },
 
@@ -276,6 +302,7 @@ const Game = {
     p.graze++;
     this.addScore(500);
     p.addGauge(1.4);
+    if (this.bg.onGraze) this.bg.onGraze();
     Effects.spark((p.x + b.x) / 2, (p.y + b.y) / 2, '#ffffff', 2, 2, 12, 1.2);
     Sound.play('graze');
   },
@@ -288,6 +315,7 @@ const Game = {
     if (this.boss && this.spellUI) this.boss.capture = false;
     this.shake = 10;
     Items.autoAll();
+    if (this.bg.onBomb) this.bg.onBomb();
   },
 
   playerDie() {
@@ -297,6 +325,7 @@ const Game = {
     Effects.ring(p.x, p.y, '#ffffff', 120, 40, 3);
     Effects.spark(p.x, p.y, '#e0d0ff', 30, 5, 50, 3);
     if (this.boss && this.spellUI) this.boss.capture = false;
+    if (this.bg.onMiss) this.bg.onMiss();
     p.power = Math.max(1, p.power - 0.5);
     for (let i = 0; i < 6; i++) Items.spawn('power', p.x + rand(-30, 30), p.y - 10, { vy: -rand(3, 5), vx: rand(-1.5, 1.5) });
     Bullets.clear(false);
@@ -392,6 +421,7 @@ const Game = {
     }
   },
 
+  nextStageDef() { return this.practice ? null : STAGES[this.stageIdx + 1] || null; },
   stageClear() {
     const p = this.player;
     const clear = 1000000 * (D.lv + 1);
@@ -442,6 +472,7 @@ const Game = {
     Bullets.draw(c);
     Items.draw(c);
     Effects.draw(c);
+    if (this.bg.drawOver) this.bg.drawOver(c); // 弾より上にかかる演出（悪夢の暗転など）
     this.player.drawHitbox(c);
 
     this.drawBossUI(c);
@@ -677,9 +708,14 @@ const Game = {
       });
       c.textAlign = 'center';
       c.fillStyle = '#c9b8ff'; c.font = `14px ${FONT_SERIF}`;
-      c.fillText('― 体験版はここまで ―', FW / 2, 300);
-      c.fillText('第二夢「悪夢」へ続く……', FW / 2, 322);
-      if (this.clearT > 60 && (this.frame >> 4) % 2) { c.fillStyle = '#fff'; c.fillText('Z でタイトルへ', FW / 2, 370); }
+      const next = this.nextStageDef();
+      if (next) c.fillText(`夢はさらに深く――　${next.name}「${next.title}」へ`, FW / 2, 310);
+      else if (this.practice) c.fillText('― 練習おわり ―', FW / 2, 310);
+      else {
+        c.fillText('― 体験版はここまで ―', FW / 2, 300);
+        c.fillText(this.stage.nextHint || '', FW / 2, 322);
+      }
+      if (this.clearT > 60 && (this.frame >> 4) % 2) { c.fillStyle = '#fff'; c.fillText(next ? 'Z で次の夢へ' : 'Z でタイトルへ', FW / 2, 370); }
     }
     c.restore();
   },
@@ -744,6 +780,16 @@ const Game = {
         c.textAlign = 'left';
       });
       c.globalAlpha = 1;
+    } else if (this.scene === 'stagesel') {
+      c.fillStyle = '#d8ccff'; c.font = `14px ${FONT_SERIF}`;
+      c.fillText(`練習する夢を選んでください（${DIFFS[this.lastDiff].name}）`, 60, 236);
+      STAGES.forEach((st, i) => {
+        const sel = i === this.menu;
+        c.globalAlpha = sel ? 1 : 0.5;
+        c.fillStyle = sel ? '#ffe6a0' : '#cfc4ff'; c.font = `bold 20px ${FONT_SERIF}`;
+        c.fillText(`${sel ? '◆ ' : '　'}${st.name}　${st.title}`, 60, 280 + i * 40);
+      });
+      c.globalAlpha = 1;
     } else if (this.scene === 'howto') {
       c.fillStyle = 'rgba(10,6,30,0.75)'; c.fillRect(40, 210, 560, 236);
       c.strokeStyle = 'rgba(200,180,255,0.5)'; c.strokeRect(40.5, 210.5, 559, 235);
@@ -755,11 +801,12 @@ const Game = {
         ['獏喰', '周りの弾を夢ごと食べて消す。被弾直後に押すと喰らいボム'],
         ['食べ残し', 'この異変では、食べた夢の一部があとで戻ってくる……'],
         ['予告', '光の線・きらめきは「これから起きること」。明るいほど近い'],
+        ['悪夢', '闇は少しずつ迫る。弾をかすめて悪夢をかじると押し返せる'],
         ['回収', '画面上部へ行くとアイテムを自動回収'],
       ];
       lines.forEach(([k, v], i) => {
-        c.font = `bold 14px ${FONT_SERIF}`; c.fillStyle = '#ffe6a0'; c.fillText(k, 60, 240 + i * 26);
-        c.font = `13px ${FONT_SANS}`; c.fillStyle = '#ffffff'; c.fillText(v, 150, 240 + i * 26);
+        c.font = `bold 14px ${FONT_SERIF}`; c.fillStyle = '#ffe6a0'; c.fillText(k, 60, 236 + i * 23.5);
+        c.font = `13px ${FONT_SANS}`; c.fillStyle = '#ffffff'; c.fillText(v, 150, 236 + i * 23.5);
       });
     }
 

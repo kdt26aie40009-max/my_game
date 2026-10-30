@@ -15,6 +15,7 @@ class Bullet {
     this.fake = false;     // 見た目だけの弾（当たらない）
     this.noClear = false;  // フェーズ終了で消えない
     this.alpha = 1;
+    this.jit = 0;          // 震え（悪夢の弾が化ける前触れ）
     this.rot = Math.random() * TAU; this.spin = def.spin || 0;
     this.bound = 32;       // 画面外に出て消えるまでの余白
     this.life = -1;
@@ -33,6 +34,12 @@ class Bullet {
     if (this.life > 0 && this.frame >= this.life) this.alive = false;
     const b = this.bound;
     if (this.x < -b || this.x > FW + b || this.y < -b || this.y > FH + b) this.alive = false;
+  }
+  // 弾の種類・色を途中で変える
+  retype(type, color) {
+    this.type = type; this.def = BTYPES[type]; this.r = this.def.r;
+    this.spin = this.def.spin || 0;
+    if (color) this.color = color;
   }
 }
 
@@ -84,12 +91,14 @@ const Bullets = {
       let sc = SCALE, alpha = b.alpha;
       if (b.delay > 0) { sc *= 1 + b.delay * 0.18; alpha *= 0.5; }
       c.globalAlpha = alpha;
+      let bx = b.x, by = b.y;
+      if (b.jit) { bx += rand(-b.jit, b.jit); by += rand(-b.jit, b.jit); }
       if (def.oriented || def.spin) {
         const r = def.oriented ? b.ang : b.rot;
         const cs = Math.cos(r) * sc, sn = Math.sin(r) * sc;
-        c.setTransform(cs, sn, -sn, cs, ox + b.x * SCALE, oy + b.y * SCALE);
+        c.setTransform(cs, sn, -sn, cs, ox + bx * SCALE, oy + by * SCALE);
       } else {
-        c.setTransform(sc, 0, 0, sc, ox + b.x * SCALE, oy + b.y * SCALE);
+        c.setTransform(sc, 0, 0, sc, ox + bx * SCALE, oy + by * SCALE);
       }
       c.drawImage(spr, -h, -h, s, s);
     }

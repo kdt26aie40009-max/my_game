@@ -79,6 +79,8 @@ const Sound = {
       case 'ok': this.tone(880, 0.08, 'triangle', 0.08, 1320); break;
       case 'cancel': this.tone(600, 0.08, 'triangle', 0.08, 300); break;
       case 'pause': this.tone(700, 0.1, 'sine', 0.08); break;
+      case 'beat': this.tone(70, 0.14, 'sine', 0.35, 50); this.tone(62, 0.14, 'sine', 0.28, 45, 0.2); break; // 恐怖の鼓動
+      case 'blink': this.tone(160, 0.45, 'sine', 0.22, 50); this.noise(0.3, 0.06, 600); break;
     }
   },
 };

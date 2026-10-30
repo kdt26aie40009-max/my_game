@@ -18,6 +18,9 @@ const BTYPES = {
   needle:  { r: 2.0, size: 24, oriented: true },
   star:    { r: 3.6, size: 18, spin: 0.07 },
   bigstar: { r: 8, size: 38, spin: 0.04 },
+  shade:   { r: 4.4, size: 22 },                 // 闇の弾（黒い芯）
+  moth:    { r: 3.2, size: 22, oriented: true }, // 蛾
+  shard:   { r: 2.4, size: 18, oriented: true }, // 鏡の破片
 };
 
 const ITEM_SIZE = { power: 12, bigpower: 18, point: 12, bomb: 16, life: 16, eat: 8 };
@@ -85,6 +88,22 @@ const Sprites = {
         glow(g, 0, 0, h, col, 0.5);
         g.fillStyle = col; starPath(g, 0, 0, 15, 7); g.fill();
         g.fillStyle = '#fff'; starPath(g, 0, 0, 8.5, 3.8); g.fill();
+        break;
+      case 'shade': // 光る縁と、真っ黒な芯
+        glow(g, 0, 0, h, col, 0.6); circle(g, 0, 0, 7, col); circle(g, 0, 0, 5, '#14061f');
+        circle(g, -1.6, -1.6, 1.1, 'rgba(255,255,255,0.7)');
+        break;
+      case 'moth': // 頭が進行方向。後翅に目玉模様
+        glow(g, 0, 0, h * 0.8, col, 0.4);
+        ellipse(g, -1, -4.2, 5.5, 3.6, col, -0.5); ellipse(g, -1, 4.2, 5.5, 3.6, col, 0.5);
+        ellipse(g, -4.5, -3.4, 3.4, 2.6, col, 0.4); ellipse(g, -4.5, 3.4, 3.4, 2.6, col, -0.4);
+        circle(g, -4.8, -3.4, 1.3, '#fff'); circle(g, -4.8, 3.4, 1.3, '#fff');
+        ellipse(g, 0.5, 0, 5, 1.4, '#fff');
+        break;
+      case 'shard':
+        glow(g, 0, 0, h * 0.7, col, 0.4);
+        g.fillStyle = col; g.beginPath(); g.moveTo(8, 0); g.lineTo(-6, -3.6); g.lineTo(-4, 0); g.lineTo(-6, 3.6); g.closePath(); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.moveTo(6, 0); g.lineTo(-3, -1.4); g.lineTo(-3, 1.4); g.closePath(); g.fill();
         break;
     }
     return c;

@@ -7,7 +7,9 @@
 const ART_MANIFEST = {
   // player: 'assets/player.png',          // 自機（高さ40pxくらいで表示）
   // boss1: 'assets/boss1.png',            // 予知夢の精霊（高さ64px）
-  // boss1_cutin: 'assets/boss1_cutin.png' // 夢札宣言時のカットイン立ち絵
+  // boss1_cutin: 'assets/boss1_cutin.png', // 夢札宣言時のカットイン立ち絵
+  // boss2: 'assets/boss2.png',            // 悪夢の精霊
+  // boss2_cutin: 'assets/boss2_cutin.png',
 };
 
 const Art = {
